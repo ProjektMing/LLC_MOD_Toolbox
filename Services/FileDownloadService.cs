@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LLC_MOD_Toolbox.Services;
 
-public class FileDownloadService(ILogger<FileDownloadService> _logger) : IFileDownloadService
+public class FileDownloadService : IFileDownloadService
 {
     private readonly DownloadService downloadService = new(downloadOpt);
     private static readonly DownloadConfiguration downloadOpt =
@@ -33,11 +33,25 @@ public class FileDownloadService(ILogger<FileDownloadService> _logger) : IFileDo
             RequestConfiguration = { UserAgent = $"LLC_MOD_Toolbox/{VersionHelper.LocalVersion}", }
         };
 
+    public FileDownloadService(ILogger<FileDownloadService> logger)
+    {
+        downloadService.AddLogger(logger);
+    }
+
     public async Task<string> GetJsonAsync(string url)
     {
-        downloadService.AddLogger(_logger);
         Stream stream = await downloadService.DownloadFileTaskAsync(url);
         using StreamReader reader = new(stream);
         return await reader.ReadToEndAsync();
+    }
+
+    public async Task<Stream> InstallLanguagePackageAsync(string url, IProgress<double> progress)
+    {
+        downloadService.DownloadProgressChanged += (s, e) =>
+        {
+            progress.Report(e.ProgressPercentage);
+        };
+
+        return await downloadService.DownloadFileTaskAsync(url);
     }
 }

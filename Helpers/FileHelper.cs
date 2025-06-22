@@ -67,7 +67,7 @@ internal static class FileHelper
     /// <exception cref="ArgumentNullException">预检查流</exception>
     public static void ExtractLanguagePackage(Stream stream, string limbusCompanyPath)
     {
-        if (Path.Exists(limbusCompanyPath))
+        if (!Directory.Exists(limbusCompanyPath))
             throw new ArgumentException("路径不存在", nameof(limbusCompanyPath));
         if (stream == null)
             throw new ArgumentNullException(nameof(stream), "流不能为空");
@@ -81,20 +81,14 @@ internal static class FileHelper
     /// <exception cref="ArgumentException">路径不存在</exception>
     public static void DeleteBepInEx(string limbusCompanyPath, ILogger logger)
     {
-        if (Path.Exists(limbusCompanyPath))
+        if (!Directory.Exists(limbusCompanyPath))
             throw new ArgumentException("路径不存在", nameof(limbusCompanyPath));
 
-        try
-        {
-            Directory.Delete(Path.Combine(limbusCompanyPath, "LimbusCompany_Data", "Lang"));
-        }
-        catch (DirectoryNotFoundException)
-        {
-            logger.LogWarning("语言包已提前被删除。");
-        }
-
         if (!ValidateHelper.CheckBepInEx(limbusCompanyPath))
+        {
+            logger.LogInformation("BepInEx 未安装或已被删除。");
             return;
+        }
 
         foreach (string file in BepInExFiles)
         {
@@ -113,16 +107,24 @@ internal static class FileHelper
         }
     }
 
-    public static Task ExtractFileAsync(string filePath, string destinationPath)
+    /// <summary>
+    /// 提取文件到指定目录
+    /// </summary>
+    /// <param name="filePath">压缩包位置</param>
+    /// <param name="destinationPath">解压目标位置</param>
+    /// <exception cref="ArgumentException">路径无效或不存在</exception>
+    public static void ExtractFile(string? filePath, string? destinationPath)
     {
-        if (string.IsNullOrEmpty(destinationPath) || !Directory.Exists(destinationPath))
+        if (!File.Exists(filePath))
+        {
+            throw new ArgumentException("文件路径无效或不存在", nameof(filePath));
+        }
+        if (!Directory.Exists(destinationPath))
         {
             throw new ArgumentException("目标路径无效或不存在", nameof(destinationPath));
         }
-        return Task.Run(() =>
-        {
-            using var archive = new SevenZip.SevenZipExtractor(filePath);
-            archive.ExtractArchive(destinationPath);
-        });
+
+        using var archive = new SevenZip.SevenZipExtractor(filePath);
+        archive.ExtractArchive(destinationPath);
     }
 }

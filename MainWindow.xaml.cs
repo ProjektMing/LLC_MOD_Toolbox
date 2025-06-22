@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using LLC_MOD_Toolbox.Helpers;
+using LLC_MOD_Toolbox.Services;
 using LLC_MOD_Toolbox.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,9 +13,11 @@ namespace LLC_MOD_Toolbox
     public partial class MainWindow : Window
     {
         private readonly ILogger<MainWindow> logger;
+        private readonly IDialogDisplayService _dialogDisplayService;
 
         public MainWindow(
             ILogger<MainWindow> logger,
+            IDialogDisplayService dialogDisplayService,
             MainViewModel mainViewModel,
             AutoInstallerViewModel autoInstallerViewModel,
             SettingsViewModel settingsViewModel,
@@ -24,6 +27,7 @@ namespace LLC_MOD_Toolbox
         {
             InitializeComponent();
             this.logger = logger;
+            _dialogDisplayService = dialogDisplayService;
             DataContext = mainViewModel;
             AutoInstallerPage.DataContext = autoInstallerViewModel;
             SettingsPage.DataContext = settingsViewModel;
@@ -43,28 +47,29 @@ namespace LLC_MOD_Toolbox
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                var file = files.FirstOrDefault(f =>
+                var filePath = files.FirstOrDefault(f =>
                     f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)
                     || f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
                 );
-                if (!string.IsNullOrEmpty(file))
+                logger.LogInformation("拖拽文件路径: {filePath}", filePath);
+                var limbusCompanyPath =
+                    PathHelper.DetectedLimbusCompanyPath ?? PathHelper.SelectPath();
+                if (limbusCompanyPath == null)
                 {
-                    logger.LogInformation("拖拽文件路径: {filePath}", file);
-                    var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read);
-                    var limbusCompanyPath =
-                        PathHelper.DetectedLimbusCompanyPath ?? PathHelper.SelectPath();
-                    try
-                    {
-                        FileHelper.ExtractLanguagePackage(fileStream, limbusCompanyPath);
-                        logger.LogInformation(
-                            "成功安装语言包到边狱公司目录：{limbusCompanyPath}",
-                            limbusCompanyPath
-                        );
-                    }
-                    finally
-                    {
-                        fileStream.Dispose();
-                    }
+                    _dialogDisplayService.ShowError("未检测到边狱公司目录");
+                    logger.LogError("未检测到边狱公司目录，已取消操作");
+                    return;
+                }
+
+                try
+                {
+                    FileHelper.ExtractFile(filePath, limbusCompanyPath);
+                    logger.LogInformation("成功安装语言包到边狱公司目录：{limbusCompanyPath}", limbusCompanyPath);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "语言包安装过程中发生错误。");
+                    _dialogDisplayService.ShowError("语言包安装失败，请重试。");
                 }
             }
         }

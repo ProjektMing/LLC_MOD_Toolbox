@@ -12,14 +12,18 @@ internal static class ValidateHelper
         return Convert.ToHexString(hash).Equals(onlineHash, StringComparison.OrdinalIgnoreCase);
     }
 
-    public static bool CheckMelonloader(string path)
+    public static bool CheckMelonloader(string? path)
     {
+        if (path == null)
+            return false;
         string melonloaderPath = Path.Combine(path, "version.dll");
         return File.Exists(melonloaderPath);
     }
 
-    public static bool CheckBepInEx(string path)
+    public static bool CheckBepInEx(string? path)
     {
+        if (path == null)
+            return false;
         return File.Exists(Path.Combine(path, "winhttp.dll.disabled"))
             || File.Exists(Path.Combine(path, "winhttp.dll"));
     }

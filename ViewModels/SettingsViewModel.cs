@@ -20,15 +20,7 @@ public partial class SettingsViewModel : ObservableObject
     private string? limbusCompanyPath;
     public string? LimbusCompanyPath
     {
-        get
-        {
-            if (Directory.Exists(limbusCompanyPath))
-            {
-                return limbusCompanyPath;
-            }
-            _logger.LogWarning("当前路径不存在！");
-            return PathHelper.SelectPath();
-        }
+        get { return limbusCompanyPath; }
         set
         {
             if (Directory.Exists(value))

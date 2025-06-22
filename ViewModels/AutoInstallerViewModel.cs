@@ -16,9 +16,7 @@ public partial class AutoInstallerViewModel : ObservableObject
     private readonly IFileDownloadService fileDownloadService;
     private readonly IDialogDisplayService dialogDisplayService;
 
-    private readonly NodeInformation selectedEndPoint;
-    private readonly string limbusCompanyPath;
-    private readonly string? testToken;
+    private readonly Config _config;
 
     [ObservableProperty]
     private double percent;
@@ -34,38 +32,34 @@ public partial class AutoInstallerViewModel : ObservableObject
         _logger = logger;
         this.fileDownloadService = fileDownloadService;
         this.dialogDisplayService = dialogDisplayService;
-        selectedEndPoint = config.DownloadNode;
-        limbusCompanyPath =
-            ConfigurationManager.AppSettings["GamePath"]
-            ?? PathHelper.DetectedLimbusCompanyPath
-            ?? PathHelper.SelectPath();
-        testToken = config.Token;
+        _config = config;
 
         installationProgress = new Progress<double>(value => Percent = value);
     }
 
     [RelayCommand]
-    private Task ModInstallation()
+    private async Task ModInstallation()
     {
         _logger.LogInformation("开始安装 BepInEx。");
-        _logger.LogInformation("选择的下载节点为：{selectedEndPoint}", selectedEndPoint);
-        _logger.LogInformation("边狱公司路径为：{limbusCompanyPath}", limbusCompanyPath);
+        _logger.LogInformation("当前配置为：{config}", _config);
 
-        if (ValidateHelper.CheckMelonloader(limbusCompanyPath))
+        if (ValidateHelper.CheckMelonloader(_config.GamePath))
         {
             dialogDisplayService.ShowError("检测到 MelonLoader，请先卸载。");
-            MessageBox.Show("当前环境检测到 MelonLoader，请先卸载", "Warning");
-            _logger.LogError("当前环境检测到 MelonLoader，提醒用户卸载。");
-            return Task.CompletedTask;
+            return;
         }
 
         if (!dialogDisplayService.Confirm("安装前请确保游戏已经关闭。\n确定继续吗？"))
         {
             _logger.LogInformation("用户取消了安装 BepInEx。");
-            return Task.CompletedTask;
+            return;
         }
         try
         {
+            await fileDownloadService.InstallLanguagePackageAsync(
+                UrlHelper.GetReleaseUrl(_config.DownloadNode.Endpoint),
+                installationProgress
+            );
             _logger.LogInformation("文件下载成功，开始执行后续操作。");
         }
         catch (IOException ex)
@@ -88,7 +82,5 @@ public partial class AutoInstallerViewModel : ObservableObject
             MessageBox.Show("未知错误，请联系开发者。", "警告");
             _logger.LogError(ex, "未知错误，请联系开发者。");
         }
-
-        return Task.CompletedTask;
     }
 }

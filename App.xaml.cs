@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -22,6 +23,8 @@ namespace LLC_MOD_Toolbox
         /// Gets the current instance of the application.
         /// </summary>
         public static new App Current => (App)Application.Current;
+
+        private Mutex _mutex;
 
         public IServiceProvider Services { get; }
 
@@ -76,6 +79,7 @@ namespace LLC_MOD_Toolbox
 
         public App()
         {
+            EnsureSingleInstance();
 #if DEBUG
             AllocConsole();
             Console.WriteLine("控制台已生成");
@@ -112,7 +116,7 @@ namespace LLC_MOD_Toolbox
                 string jsonPayload = await http.GetJsonAsync(
                     UrlHelper.GetReleaseUrl(nodeInformation.Endpoint)
                 );
-                _logger.LogInformation("API 节点连接成功。");
+                _logger.LogTrace("API 节点连接成功。");
                 string announcement = JsonHelper.DeserializeValue("body", jsonPayload);
                 string latestVersion = JsonHelper.DeserializeValue("tag_name", jsonPayload);
                 _logger.LogInformation("当前网络版本：{latestVersion}", latestVersion);
@@ -130,7 +134,6 @@ namespace LLC_MOD_Toolbox
             }
             catch (NotImplementedException)
             {
-                _logger.LogInformation("暂不支持自动更新");
                 Current.Shutdown();
             }
             catch (Exception ex)
@@ -139,6 +142,19 @@ namespace LLC_MOD_Toolbox
             }
             MainWindow mainWindow = Services.GetRequiredService<MainWindow>();
             mainWindow.Show();
+        }
+
+        [MemberNotNull(nameof(_mutex))]
+        private void EnsureSingleInstance()
+        {
+            _mutex = new Mutex(true, nameof(LLC_MOD_Toolbox), out bool ret);
+
+            if (!ret)
+            {
+                _logger.LogWarning("已有一个程序实例运行，尝试退出当前实例。");
+                MessageBox.Show("已有一个程序实例运行");
+                Environment.Exit(0);
+            }
         }
 
         private void Application_HandleException(object sender, UnhandledExceptionEventArgs e)
