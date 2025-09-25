@@ -15,7 +15,7 @@ namespace LLC_MOD_Toolbox.Services
             // 从 API 获取全部文本, 然后随机选择一个（这种方式可能会导致 API 过载）
             // 以参数的形式获取随机文本
             // 要求 API 自行实现随机文本的获取
-            string url = string.Format(config.ApiNode.Endpoint, "111");
+            string url = string.Format(config.ApiNode.Endpoint, "1");
             HttpClient client = httpClientFactory.CreateClient("ApiLoadingTextService");
             HttpResponseMessage response = await client.GetAsync(url);
             response.EnsureSuccessStatusCode();

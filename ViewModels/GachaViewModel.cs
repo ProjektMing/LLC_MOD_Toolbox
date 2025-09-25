@@ -7,18 +7,18 @@ namespace LLC_MOD_Toolbox.ViewModels
 {
     public partial class GachaViewModel : ObservableObject
     {
-        private List<PersonalInfo> personalInfos = [];
+        private List<PersonalInfo> _personalInfos = [];
 
         [ObservableProperty]
-        private ObservableCollection<PersonalInfo> selectedPersonalInfos = [];
+        private ObservableCollection<PersonalInfo> _selectedPersonalInfos = [];
 
         [ObservableProperty]
-        private bool isLoading;
+        private bool _isLoading;
 
         [ObservableProperty]
-        private bool isInitialized;
+        private bool _isInitialized;
 
-        private readonly Random random = new();
+        private readonly Random _random = new();
 
         private bool CanGacha => !IsLoading;
 
@@ -39,7 +39,7 @@ namespace LLC_MOD_Toolbox.ViewModels
                     // personalInfos = await networkService.GetPersonalInfosAsync();
 
                     // 临时测试数据
-                    personalInfos = [new("123", 0),];
+                    _personalInfos = [new("123", 0),];
 
                     IsInitialized = true;
                 }
@@ -54,11 +54,11 @@ namespace LLC_MOD_Toolbox.ViewModels
                 }
             }
 
-            if (personalInfos.Count > 0)
+            if (_personalInfos.Count > 0)
             {
                 SelectedPersonalInfos = [];
-                int index = random.Next(personalInfos.Count);
-                SelectedPersonalInfos.Add(personalInfos[index]);
+                int index = _random.Next(_personalInfos.Count);
+                SelectedPersonalInfos.Add(_personalInfos[index]);
             }
         }
 

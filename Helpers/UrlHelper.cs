@@ -6,55 +6,26 @@ namespace LLC_MOD_Toolbox.Helpers
     {
         private static readonly StringBuilder sb = new();
 
-        private static readonly List<string> paths =
+        private static readonly List<string> Paths =
         [
             "BepInEx-IL2CPP-x64.7z",
             "tmpchinesefont_BIE.7z",
             "LimbusLocalize_BIE.7z",
             "Resource/LimbusLocalize_Resource_latest.7z",
         ];
-        private static readonly string thisRepo =
+        private static readonly string ThisRepo =
             "repos/LocalizeLimbusCompany/LLC_Mod_Toolbox/releases/latest";
-        private static readonly List<string> repos =
-        [
-            "repos/LocalizeLimbusCompany/BepInEx_For_LLC/releases/latest",
-            "repos/LocalizeLimbusCompany/LocalizeLimbusCompany/releases/latest",
-            "repos/LocalizeLimbusCompany/LLC_ChineseFontAsset/releases/latest",
-            "repos/LocalizeLimbusCompany/LLC_Release/releases/latest",
-        ];
 
-        public static List<string> GetCustumApiUrls(string url, string? testToken)
-        {
-            List<string> results = [];
-            foreach (string path in paths)
-            {
-                results.Add(sb.Clear().AppendFormat(url, path).ToString());
-            }
-            if (testToken is not null)
-            {
-                paths[2] = GetTestUrl(testToken);
-            }
-            return paths;
-        }
-
-        internal static async Task<List<string>> GetGitHubApiUrl(
+        internal static Task<string> GetGitHubApiUrl(
             string endpoint,
             Services.IFileDownloadService fileDownloadService
         )
         {
-            List<string> results = [];
-            foreach (string repo in repos)
-            {
-                string jsonPayload = await fileDownloadService.GetJsonAsync(
-                    sb.Clear().AppendFormat(endpoint, repo).ToString()
-                );
-                results.Add(JsonHelper.DeserializeValue("browser_download_url", jsonPayload));
-            }
-            return results;
+            throw new NotImplementedException();
         }
 
         public static string GetReleaseUrl(string url) =>
-            sb.Clear().AppendFormat(url, thisRepo).ToString();
+            sb.Clear().AppendFormat(url, ThisRepo).ToString();
 
         public static string GetHashUrl(string url) =>
             sb.Clear().AppendFormat(url, "LimbusLocalizeHash.json").ToString();

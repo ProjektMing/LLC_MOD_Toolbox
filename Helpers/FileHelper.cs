@@ -7,14 +7,14 @@ namespace LLC_MOD_Toolbox.Helpers;
 
 internal static class FileHelper
 {
-    private static readonly DownloadConfiguration downloadConfig =
+    private static readonly DownloadConfiguration DownloadConfig =
         new()
         {
             ChunkCount = 8,
-            MaxTryAgainOnFailover = 3,
+            MaxTryAgainOnFailure = 3,
             ParallelDownload = true,
         };
-    private static readonly DownloadService downloader = new(downloadConfig);
+    private static readonly DownloadService Downloader = new(DownloadConfig);
 
     private static readonly List<string> BepInExFiles =
     [
@@ -48,10 +48,10 @@ internal static class FileHelper
     )
     {
         logger.LogInformation("开始下载文件：{url}", url);
-        downloader.AddLogger(logger);
-        downloader.DownloadProgressChanged += onDownloadProgressChanged;
-        downloader.DownloadFileCompleted += onDownloadFileCompleted;
-        await downloader.DownloadFileTaskAsync(url, path);
+        Downloader.AddLogger(logger);
+        Downloader.DownloadProgressChanged += onDownloadProgressChanged;
+        Downloader.DownloadFileCompleted += onDownloadFileCompleted;
+        await Downloader.DownloadFileTaskAsync(url, path);
     }
 
     /// <summary>

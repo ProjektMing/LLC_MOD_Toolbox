@@ -12,204 +12,206 @@ using NLog.Extensions.Logging;
 using NLog.Targets;
 using SevenZip;
 
-namespace LLC_MOD_Toolbox
+namespace LLC_MOD_Toolbox;
+
+/// <summary>
+/// Interaction logic for App.xaml
+/// </summary>
+public partial class App
 {
     /// <summary>
-    /// Interaction logic for App.xaml
+    /// Gets the current instance of the application.
+    /// <br/>
+    /// A new instance of <see cref="App"/> will be created only if is in design mode.
     /// </summary>
-    public partial class App : Application
+    public static new App Current => (App)Application.Current;
+
+    private Mutex _mutex;
+
+    public IServiceProvider Services { get; }
+
+    private readonly ILogger<App> _logger;
+
+    private static ServiceProvider ConfigureServices()
     {
-        /// <summary>
-        /// Gets the current instance of the application.
-        /// </summary>
-        public static new App Current => (App)Application.Current;
+        ServiceCollection services = new();
 
-        private Mutex _mutex;
+        // Models
+        services.AddSingleton(PrimaryNodeList.ReadFrom("NodeList.json"));
+        services.AddSingleton(p => Config.ReadFrom("config.json", p));
 
-        public IServiceProvider Services { get; }
+        // Services
+        services.AddTransient<IFileDownloadService, FileDownloadService>();
+        services.AddTransient<IDialogDisplayService, DialogDisplayService>();
 
-        private readonly ILogger<App> _logger;
+        services.AddScoped<ILoadingTextService, FileLoadingTextService>();
+        //services.AddTransient<ILoadingTextService, ApiLoadingTextService>();
 
-        private static ServiceProvider ConfigureServices()
+
+        // Views
+        services.AddTransient<MainWindow>();
+
+        // ViewModels
+        services.AddScoped<AutoInstallerViewModel>();
+        services.AddScoped<SettingsViewModel>();
+        services.AddScoped<GachaViewModel>();
+        services.AddScoped<LinkViewModel>();
+
+        services.AddLogging(builder =>
         {
-            ServiceCollection services = new();
-
-            // Models
-            services.AddSingleton(PrimaryNodeList.ReadFrom("NodeList.json"));
-            services.AddSingleton(p => Config.ReadFrom("config.json", p));
-
-            // Services
-            services.AddTransient<IFileDownloadService, FileDownloadService>();
-            services.AddTransient<IDialogDisplayService, DialogDisplayService>();
-
-            services.AddScoped<ILoadingTextService, FileLoadingTextService>();
-            //services.AddTransient<ILoadingTextService, ApiLoadingTextService>();
-
-
-            // Views
-            services.AddTransient<MainWindow>();
-
-            // ViewModels
-            services.AddScoped<MainViewModel>();
-            services.AddScoped<AutoInstallerViewModel>();
-            services.AddScoped<SettingsViewModel>();
-            services.AddScoped<GachaViewModel>();
-            services.AddScoped<LinkViewModel>();
-
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
+            builder.ClearProviders();
 #if DEBUG
-                var config = new NLog.Config.LoggingConfiguration();
-                var consoleTarget = new ConsoleTarget("console");
-                config.AddTarget(consoleTarget);
-                // 添加规则，将所有日志级别从Trace到Fatal的日志路由到控制台
-                config.AddRule(NLog.LogLevel.Trace, NLog.LogLevel.Fatal, consoleTarget);
-                // 应用NLog配置
-                builder.AddNLog().AddConsole();
+            var config = new NLog.Config.LoggingConfiguration();
+            var consoleTarget = new ConsoleTarget("console");
+            config.AddTarget(consoleTarget);
+            // 添加规则，将所有日志级别从Trace到Fatal的日志路由到控制台
+            config.AddRule(NLog.LogLevel.Trace, NLog.LogLevel.Fatal, consoleTarget);
+            // 应用NLog配置
+            builder.AddNLog().AddConsole();
 #else
-                builder.AddNLog("Nlog.config");
+            builder.AddNLog("Nlog.config");
 #endif
-            });
+        });
 
-            services.AddHttpClient();
+        services.AddHttpClient();
 
-            return services.BuildServiceProvider();
-        }
+        return services.BuildServiceProvider();
+    }
 
-        public App()
-        {
-            EnsureSingleInstance();
+    public App()
+    {
+        EnsureSingleInstance();
 #if DEBUG
-            AllocConsole();
-            Console.WriteLine("控制台已生成");
+        AllocConsole();
+        Console.WriteLine("控制台已生成");
 #endif
-            Services = ConfigureServices();
-            _logger = Services.GetRequiredService<ILogger<App>>();
-            AppDomain.CurrentDomain.UnhandledException += Application_HandleException;
-        }
+        Services = ConfigureServices();
+        _logger = Services.GetRequiredService<ILogger<App>>();
+        AppDomain.CurrentDomain.UnhandledException += Application_HandleException;
+    }
 
-        private async void Application_Startup(object sender, StartupEventArgs e)
+    private async void Application_Startup(object sender, StartupEventArgs e)
+    {
+        _logger.LogInformation("—————新日志分割线—————");
+        _logger.LogInformation("工具箱已进入加载流程。");
+        _logger.LogInformation("We have a lift off.");
+
+        if (e.Args.Contains("-cli"))
         {
-            _logger.LogInformation("—————新日志分割线—————");
-            _logger.LogInformation("工具箱已进入加载流程。");
-            _logger.LogInformation("We have a lift off.");
-
-            if (e.Args.Contains("-cli"))
-            {
-                _logger.LogInformation("检测到控制台模式参数。");
-                RunAsConsole();
-                Shutdown();
-            }
-
-            _logger.LogInformation("当前版本：{}", VersionHelper.LocalVersion);
-            // 检查更新
-            try
-            {
-                SevenZipBase.SetLibraryPath("7z.dll");
-                _logger.LogTrace("7z.dll 路径已设置。");
-                IFileDownloadService http = Services.GetRequiredService<IFileDownloadService>();
-
-                PrimaryNodeList NodeList = Services.GetRequiredService<PrimaryNodeList>();
-                // TODO: 优化节点选择
-                NodeInformation nodeInformation = NodeList.ApiNode.Last(n => n.IsDefault);
-                string jsonPayload = await http.GetJsonAsync(
-                    UrlHelper.GetReleaseUrl(nodeInformation.Endpoint)
-                );
-                _logger.LogTrace("API 节点连接成功。");
-                string announcement = JsonHelper.DeserializeValue("body", jsonPayload);
-                string latestVersion = JsonHelper.DeserializeValue("tag_name", jsonPayload);
-                _logger.LogInformation("当前网络版本：{latestVersion}", latestVersion);
-                if (VersionHelper.CheckForUpdate(latestVersion))
-                {
-                    MessageBox.Show(announcement);
-                    _logger.LogInformation("检测到新版本，打开链接。");
-                    UrlHelper.LaunchUrl("https://www.zeroasso.top/docs/install/autoinstall");
-                    throw new NotImplementedException("暂不支持自动更新。");
-                }
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "网络不通畅，无法获取联网版本");
-            }
-            catch (NotImplementedException)
-            {
-                Current.Shutdown();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "检查更新时出现异常");
-            }
-            MainWindow mainWindow = Services.GetRequiredService<MainWindow>();
-            mainWindow.Show();
+            _logger.LogInformation("检测到控制台模式参数。");
+            RunAsConsole();
+            Shutdown();
         }
 
-        [MemberNotNull(nameof(_mutex))]
-        private void EnsureSingleInstance()
+        _logger.LogInformation("当前版本：{}", VersionHelper.LocalVersion);
+        // 检查更新
+        try
         {
-            _mutex = new Mutex(true, nameof(LLC_MOD_Toolbox), out bool ret);
+            SevenZipBase.SetLibraryPath("7z.dll");
+            _logger.LogTrace("7z.dll 路径已设置。");
+            IFileDownloadService http = Services.GetRequiredService<IFileDownloadService>();
 
-            if (!ret)
+            PrimaryNodeList nodeList = Services.GetRequiredService<PrimaryNodeList>();
+            // TODO: 优化节点选择
+            NodeInformation nodeInformation = nodeList.ApiNode.Last(n => n.IsDefault);
+            string jsonPayload = await http.GetJsonAsync(
+                UrlHelper.GetReleaseUrl(nodeInformation.Endpoint)
+            );
+            _logger.LogTrace("API 节点连接成功。");
+            string announcement = JsonHelper.DeserializeValue("body", jsonPayload);
+            string latestVersion = JsonHelper.DeserializeValue("tag_name", jsonPayload);
+            _logger.LogInformation("当前网络版本：{latestVersion}", latestVersion);
+            if (VersionHelper.CheckForUpdate(latestVersion))
             {
-                _logger.LogWarning("已有一个程序实例运行，尝试退出当前实例。");
-                MessageBox.Show("已有一个程序实例运行");
-                Environment.Exit(0);
+                MessageBox.Show(announcement);
+                _logger.LogInformation("检测到新版本，打开链接。");
+                UrlHelper.LaunchUrl("https://www.zeroasso.top/docs/install/autoinstall");
+                throw new NotImplementedException("暂不支持自动更新。");
             }
         }
-
-        private void Application_HandleException(object sender, UnhandledExceptionEventArgs e)
+        catch (HttpRequestException ex)
         {
-            if (e.ExceptionObject is Exception exception)
-                _logger.LogError(exception, "未处理异常：{}", GetExceptionMessage(exception));
-            MessageBox.Show($"出现未处理的异常，请截图留存，否则可能无法定位：{e.ExceptionObject}");
+            _logger.LogError(ex, "网络不通畅，无法获取联网版本");
+        }
+        catch (NotImplementedException)
+        {
+            Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "检查更新时出现异常");
+        }
+        MainWindow mainWindow = Services.GetRequiredService<MainWindow>();
+        mainWindow.Show();
+    }
+
+    [MemberNotNull(nameof(_mutex))]
+    private void EnsureSingleInstance()
+    {
+        _mutex = new Mutex(true, nameof(LLC_MOD_Toolbox), out bool ret);
+
+        if (ret)
+        {
+            return;
         }
 
-        private void Application_Exit(object sender, ExitEventArgs e)
-        {
-            Services.GetRequiredService<Config>().WriteTo("config.json");
-            _logger.LogInformation("工具箱已退出。");
-        }
+        _logger.LogWarning("已有一个程序实例运行，尝试退出当前实例。");
+        MessageBox.Show("已有一个程序实例运行");
+        Environment.Exit(0);
+    }
 
-        /// <summary>
-        /// 获取异常信息
-        /// </summary>
-        /// <param name="ex"></param>
-        /// <returns>获取异常对象的内部信息</returns>
-        private static string GetExceptionMessage(Exception ex)
-        {
-            return ex.InnerException == null
-                ? ex.Message
-                : $"{ex.Message} -> {GetExceptionMessage(ex.InnerException)}";
-        }
+    private void Application_HandleException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception exception)
+            _logger.LogError(exception, "未处理异常：{}", GetExceptionMessage(exception));
+        MessageBox.Show($"出现未处理的异常，请截图留存，否则可能无法定位：{e.ExceptionObject}");
+    }
 
-        /// <summary>
-        /// 创建控制台窗口
-        /// </summary>
-        /// <returns>判断是否成功创建控制台窗口</returns>
-        [System.Security.SuppressUnmanagedCodeSecurity]
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+    private void Application_Exit(object sender, ExitEventArgs e)
+    {
+        Services.GetRequiredService<Config>().WriteTo("config.json");
+        _logger.LogInformation("工具箱已退出。");
+    }
+
+    /// <summary>
+    /// 获取异常信息
+    /// </summary>
+    /// <param name="ex"></param>
+    /// <returns>获取异常对象的内部信息</returns>
+    private static string GetExceptionMessage(Exception ex)
+    {
+        return ex.InnerException == null
+            ? ex.Message
+            : $"{ex.Message} -> {GetExceptionMessage(ex.InnerException)}";
+    }
+
+    /// <summary>
+    /// 创建控制台窗口
+    /// </summary>
+    /// <returns>判断是否成功创建控制台窗口</returns>
+    [System.Security.SuppressUnmanagedCodeSecurity]
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
 #pragma warning disable SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
-        internal static extern bool AllocConsole();
+    internal static extern bool AllocConsole();
 #pragma warning restore SYSLIB1054 // 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
 
-        /// <summary>
-        /// 仅在控制台模式下运行时调用的方法。<br/>
-        /// <b>注意</b>：建议在调用此方法后调用 <c>Application.Current.Shutdown();</c> 以确保应用程序正确退出。
-        /// </summary>
-        private void RunAsConsole()
-        {
-            AllocConsole();
-            _logger.LogTrace("工具箱已以控制台模式运行。");
+    /// <summary>
+    /// 仅在控制台模式下运行时调用的方法。<br/>
+    /// <b>注意</b>：建议在调用此方法后调用 <c>Application.Current.Shutdown()</c> 以确保应用程序正确退出。
+    /// </summary>
+    private void RunAsConsole()
+    {
+        AllocConsole();
+        _logger.LogTrace("工具箱已以控制台模式运行。");
 
-            Console.WriteLine("欢迎使用 LLC_MOD_Toolbox！");
-            _logger.LogInformation("以控制台方式启动");
-            IFileDownloadService fileDownloadService =
-                Services.GetRequiredService<IFileDownloadService>();
+        Console.WriteLine("欢迎使用 LLC_MOD_Toolbox！");
+        _logger.LogInformation("以控制台方式启动");
+        IFileDownloadService fileDownloadService =
+            Services.GetRequiredService<IFileDownloadService>();
 
-            _logger.LogTrace("控制台的汉化安装已完成");
-            Console.WriteLine("控制台的汉化安装已完成。请按任意键退出。");
-            Console.ReadKey();
-            UrlHelper.LaunchUrl("steam://rungameid/1973530");
-        }
+        _logger.LogTrace("控制台的汉化安装已完成");
+        Console.WriteLine("控制台的汉化安装已完成。请按任意键退出。");
+        Console.ReadKey();
+        UrlHelper.LaunchUrl("steam://rungameid/1973530");
     }
 }

@@ -1,20 +1,27 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LLC_MOD_Toolbox.Helpers;
+using LLC_MOD_Toolbox.Models;
+using Microsoft.Extensions.Logging;
 
 namespace LLC_MOD_Toolbox.ViewModels;
 
-internal partial class GrayTestViewModel : ObservableObject
+internal partial class GrayTestViewModel(Config config, ILogger<GrayTestViewModel> logger)
+    : ObservableObject
 {
     [ObservableProperty]
-    bool isGrayTestValid;
+    bool _isGrayTestValid;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CheckGrayTestCommand))]
-    string? token;
+    string? _token;
 
     [RelayCommand(CanExecute = nameof(CanExecuteCheckGrayTest))]
-    private void CheckGrayTest()
+    private void CheckGrayTest(string token)
     {
+        UrlHelper.GetTestUrl(token);
+        config.Token = token;
+        logger.LogInformation("CheckGrayTest executed");
         IsGrayTestValid = true;
     }
 

@@ -5,7 +5,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="clr-namespace:LLC_MOD_Toolbox.ViewModels"
-    xmlns:views="clr-namespace:LLC_MOD_Toolbox.Views"
     d:Background="DarkGray"
     d:DataContext="{d:DesignInstance Type=viewmodels:LinkViewModel,
                                      IsDesignTimeCreatable=True}"

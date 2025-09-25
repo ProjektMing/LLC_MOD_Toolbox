@@ -1,24 +1,21 @@
-using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using LLC_MOD_Toolbox.Helpers;
 using LLC_MOD_Toolbox.Services;
 using LLC_MOD_Toolbox.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace LLC_MOD_Toolbox
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
-        private readonly ILogger<MainWindow> logger;
+        private readonly ILogger<MainWindow> _logger;
         private readonly IDialogDisplayService _dialogDisplayService;
 
         public MainWindow(
             ILogger<MainWindow> logger,
             IDialogDisplayService dialogDisplayService,
-            MainViewModel mainViewModel,
             AutoInstallerViewModel autoInstallerViewModel,
             SettingsViewModel settingsViewModel,
             GachaViewModel gachaViewModel,
@@ -26,9 +23,8 @@ namespace LLC_MOD_Toolbox
         )
         {
             InitializeComponent();
-            this.logger = logger;
+            _logger = logger;
             _dialogDisplayService = dialogDisplayService;
-            DataContext = mainViewModel;
             AutoInstallerPage.DataContext = autoInstallerViewModel;
             SettingsPage.DataContext = settingsViewModel;
             GachaPage.DataContext = gachaViewModel;
@@ -37,40 +33,43 @@ namespace LLC_MOD_Toolbox
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            await ChangeEEPic("https://dl.kr.zeroasso.top/ee_pic/public/public.png");
+            await ChangeEePic("https://dl.kr.zeroasso.top/ee_pic/public/public.png");
 
-            logger.LogInformation("加载流程完成。");
+            _logger.LogInformation("加载流程完成。");
         }
 
         private void ManualInstallPage_Drop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                var filePath = files.FirstOrDefault(f =>
-                    f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)
-                    || f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
-                );
-                logger.LogInformation("拖拽文件路径: {filePath}", filePath);
-                var limbusCompanyPath =
-                    PathHelper.DetectedLimbusCompanyPath ?? PathHelper.SelectPath();
-                if (limbusCompanyPath == null)
-                {
-                    _dialogDisplayService.ShowError("未检测到边狱公司目录");
-                    logger.LogError("未检测到边狱公司目录，已取消操作");
-                    return;
-                }
+                return;
+            }
 
-                try
-                {
-                    FileHelper.ExtractFile(filePath, limbusCompanyPath);
-                    logger.LogInformation("成功安装语言包到边狱公司目录：{limbusCompanyPath}", limbusCompanyPath);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "语言包安装过程中发生错误。");
-                    _dialogDisplayService.ShowError("语言包安装失败，请重试。");
-                }
+            string[] files = (string[])(
+                e.Data.GetData(DataFormats.FileDrop) ?? throw new InvalidOperationException()
+            );
+            var filePath = files.FirstOrDefault(f =>
+                f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)
+                || f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+            );
+            _logger.LogInformation("拖拽文件路径: {filePath}", filePath);
+            var limbusCompanyPath = PathHelper.DetectedLimbusCompanyPath ?? PathHelper.SelectPath();
+            if (limbusCompanyPath == null)
+            {
+                _dialogDisplayService.ShowError("未检测到边狱公司目录");
+                _logger.LogError("未检测到边狱公司目录，已取消操作");
+                return;
+            }
+
+            try
+            {
+                FileHelper.ExtractFile(filePath, limbusCompanyPath);
+                _logger.LogInformation("成功安装语言包到边狱公司目录：{limbusCompanyPath}", limbusCompanyPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "语言包安装过程中发生错误。");
+                _dialogDisplayService.ShowError("语言包安装失败，请重试。");
             }
         }
 
@@ -143,9 +142,9 @@ namespace LLC_MOD_Toolbox
                         await ChangeEEVB(true);
                     }
                 }*/
-        public async Task ChangeEEPic(string url)
+        public async Task ChangeEePic(string url)
         {
-            logger.LogDebug("更改彩蛋图片为： {url}", url);
+            _logger.LogDebug("更改彩蛋图片为： {url}", url);
             await this.Dispatcher.BeginInvoke(method: () =>
             {
                 EEPageImage.Source = BitmapFrame.Create(

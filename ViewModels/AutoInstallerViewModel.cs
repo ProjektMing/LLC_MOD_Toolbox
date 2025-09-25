@@ -1,4 +1,3 @@
-using System.Configuration;
 using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,14 +12,14 @@ namespace LLC_MOD_Toolbox.ViewModels;
 public partial class AutoInstallerViewModel : ObservableObject
 {
     private readonly ILogger<AutoInstallerViewModel> _logger;
-    private readonly IFileDownloadService fileDownloadService;
-    private readonly IDialogDisplayService dialogDisplayService;
+    private readonly IFileDownloadService _fileDownloadService;
+    private readonly IDialogDisplayService _dialogDisplayService;
 
     private readonly Config _config;
 
     [ObservableProperty]
-    private double percent;
-    private readonly Progress<double> installationProgress;
+    private double _percent;
+    private readonly Progress<double> _installationProgress;
 
     public AutoInstallerViewModel(
         ILogger<AutoInstallerViewModel> logger,
@@ -30,35 +29,35 @@ public partial class AutoInstallerViewModel : ObservableObject
     )
     {
         _logger = logger;
-        this.fileDownloadService = fileDownloadService;
-        this.dialogDisplayService = dialogDisplayService;
+        _fileDownloadService = fileDownloadService;
+        _dialogDisplayService = dialogDisplayService;
         _config = config;
 
-        installationProgress = new Progress<double>(value => Percent = value);
+        _installationProgress = new Progress<double>(value => Percent = value);
     }
 
     [RelayCommand]
     private async Task ModInstallation()
     {
-        _logger.LogInformation("开始安装 BepInEx。");
+        _logger.LogInformation("开始安装语言包。");
         _logger.LogInformation("当前配置为：{config}", _config);
 
         if (ValidateHelper.CheckMelonloader(_config.GamePath))
         {
-            dialogDisplayService.ShowError("检测到 MelonLoader，请先卸载。");
+            _dialogDisplayService.ShowError("检测到 MelonLoader，请先卸载。");
             return;
         }
 
-        if (!dialogDisplayService.Confirm("安装前请确保游戏已经关闭。\n确定继续吗？"))
+        if (!_dialogDisplayService.Confirm("安装前请确保游戏已经关闭。\n确定继续吗？"))
         {
-            _logger.LogInformation("用户取消了安装 BepInEx。");
+            _logger.LogInformation("用户取消了安装语言包。");
             return;
         }
         try
         {
-            await fileDownloadService.InstallLanguagePackageAsync(
+            await _fileDownloadService.InstallLanguagePackageAsync(
                 UrlHelper.GetReleaseUrl(_config.DownloadNode.Endpoint),
-                installationProgress
+                _installationProgress
             );
             _logger.LogInformation("文件下载成功，开始执行后续操作。");
         }

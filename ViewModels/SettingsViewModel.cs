@@ -1,4 +1,3 @@
-using System.Configuration;
 using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -17,10 +16,10 @@ public partial class SettingsViewModel : ObservableObject
 
     private readonly IDialogDisplayService _dialogDisplayService;
 
-    private string? limbusCompanyPath;
+    private string? _limbusCompanyPath;
     public string? LimbusCompanyPath
     {
-        get { return limbusCompanyPath; }
+        get { return _limbusCompanyPath; }
         set
         {
             if (Directory.Exists(value))
@@ -28,67 +27,59 @@ public partial class SettingsViewModel : ObservableObject
                 _logger.LogInformation("设置边狱公司路径为：{value}", value);
                 App.Current.Services.GetRequiredService<Config>().GamePath = value;
 
-                SetProperty(ref limbusCompanyPath, value);
+                SetProperty(ref _limbusCompanyPath, value);
             }
         }
     }
 
     public List<NodeInformation> DownloadNodeList { get; }
 
-    private NodeInformation? downloadNode;
+    private NodeInformation? _downloadNode;
     public NodeInformation DownloadNode
     {
         get
         {
-            if (downloadNode == null)
+            if (_downloadNode != null)
             {
-                _logger.LogWarning("下载节点未设置，使用默认节点。");
-                downloadNode = DownloadNodeList.Last(n => n.IsDefault);
+                return _downloadNode;
             }
-            return downloadNode;
+
+            _logger.LogWarning("下载节点未设置，使用默认节点。");
+            _downloadNode = DownloadNodeList.Last(n => n.IsDefault);
+            return _downloadNode;
         }
         set
         {
-            if (value == null)
-            {
-                _logger.LogWarning("尝试设置下载节点为 null，操作被忽略。");
-                return;
-            }
             _logger.LogInformation("设置下载节点为：{value}", value);
             App.Current.Services.GetRequiredService<Config>().DownloadNode = value;
-            SetProperty(ref downloadNode, value);
+            SetProperty(ref _downloadNode, value);
         }
     }
 
     public List<NodeInformation> ApiNodeList { get; }
 
-    private NodeInformation? apiNode;
+    private NodeInformation? _apiNode;
     public NodeInformation ApiNode
     {
         get
         {
-            if (apiNode == null)
+            if (_apiNode == null)
             {
                 _logger.LogWarning("API节点未设置，使用默认节点。");
-                apiNode = ApiNodeList.Last(n => n.IsDefault);
+                _apiNode = ApiNodeList.Last(n => n.IsDefault);
             }
-            return apiNode;
+            return _apiNode;
         }
         set
         {
-            if (value == null)
-            {
-                _logger.LogWarning("尝试设置API节点为 null，操作被忽略。");
-                return;
-            }
             _logger.LogInformation("设置API节点为：{value}", value);
             App.Current.Services.GetRequiredService<Config>().ApiNode = value;
-            SetProperty(ref apiNode, value);
+            SetProperty(ref _apiNode, value);
         }
     }
 
     [ObservableProperty]
-    private string? testToken;
+    private string? _testToken;
 
     [RelayCommand]
     private Task ModUnistallation()

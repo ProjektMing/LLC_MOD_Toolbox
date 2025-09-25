@@ -7,16 +7,16 @@ namespace LLC_MOD_Toolbox.Services;
 
 public class FileDownloadService : IFileDownloadService
 {
-    private readonly DownloadService downloadService = new(downloadOpt);
-    private static readonly DownloadConfiguration downloadOpt =
+    private readonly DownloadService _downloader = new(DownloadOpt);
+    private static readonly DownloadConfiguration DownloadOpt =
         new()
         {
             // file parts to download
             ChunkCount = 8,
             // download speed limited to 2MB/s, default values is zero or unlimited
             MaximumBytesPerSecond = 1024 * 1024 * 2,
-            // the maximum number of times to fail
-            MaxTryAgainOnFailover = 3,
+            // the maximum number of times to fail, Invalid now
+            MaxTryAgainOnFailure = 3,
             // release memory buffer after each 50 MB
             MaximumMemoryBufferBytes = 1024 * 1024 * 50,
             // download parts of the file as parallel or not. The default value is false
@@ -35,23 +35,23 @@ public class FileDownloadService : IFileDownloadService
 
     public FileDownloadService(ILogger<FileDownloadService> logger)
     {
-        downloadService.AddLogger(logger);
+        _downloader.AddLogger(logger);
     }
 
     public async Task<string> GetJsonAsync(string url)
     {
-        Stream stream = await downloadService.DownloadFileTaskAsync(url);
+        Stream stream = await _downloader.DownloadFileTaskAsync(url);
         using StreamReader reader = new(stream);
         return await reader.ReadToEndAsync();
     }
 
-    public async Task<Stream> InstallLanguagePackageAsync(string url, IProgress<double> progress)
+    public Task<Stream> InstallLanguagePackageAsync(string url, IProgress<double> progress)
     {
-        downloadService.DownloadProgressChanged += (s, e) =>
+        _downloader.DownloadProgressChanged += (_, e) =>
         {
             progress.Report(e.ProgressPercentage);
         };
 
-        return await downloadService.DownloadFileTaskAsync(url);
+        return _downloader.DownloadFileTaskAsync(url);
     }
 }
