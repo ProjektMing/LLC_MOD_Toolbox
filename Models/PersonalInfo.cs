@@ -1,9 +1,8 @@
-﻿namespace LLC_MOD_Toolbox.Models
-{
+﻿namespace LLC_MOD_Toolbox.Models;
 
-    public class PersonalInfo()
-    {
-        public required string Name { get; set; }
-        public required int Unique { get; set; }
-    }
-}
+/// <summary>
+/// 人格数据
+/// </summary>
+/// <param name="Name"></param>
+/// <param name="Unique">星级（共3个等级）</param>
+public record PersonalInfo(string Name, int Unique);
