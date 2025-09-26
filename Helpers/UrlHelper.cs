@@ -14,7 +14,7 @@ namespace LLC_MOD_Toolbox.Helpers
             "Resource/LimbusLocalize_Resource_latest.7z",
         ];
         private static readonly string ThisRepo =
-            "repos/LocalizeLimbusCompany/LLC_Mod_Toolbox/releases/latest";
+            "v2/get_api/get/repos/LocalizeLimbusCompany/LLC_Mod_Toolbox/releases/latest";
 
         internal static Task<string> GetGitHubApiUrl(
             string endpoint,

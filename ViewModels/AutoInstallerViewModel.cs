@@ -18,7 +18,8 @@ public partial class AutoInstallerViewModel : ObservableObject
     private readonly Config _config;
 
     [ObservableProperty]
-    private double _percent;
+    public partial double Percent { get; set; }
+
     private readonly Progress<double> _installationProgress;
 
     public AutoInstallerViewModel(

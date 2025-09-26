@@ -103,8 +103,11 @@ public partial class App
             Shutdown();
         }
 
-        _logger.LogInformation("当前版本：{}", VersionHelper.LocalVersion);
-        // 检查更新
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("当前版本：{LocalVersion}", VersionHelper.LocalVersion);
+        }
+        #region 检查更新
         try
         {
             SevenZipBase.SetLibraryPath("7z.dll");
@@ -135,12 +138,14 @@ public partial class App
         }
         catch (NotImplementedException)
         {
-            Current.Shutdown();
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "检查更新时出现异常");
         }
+
+        #endregion
         MainWindow mainWindow = Services.GetRequiredService<MainWindow>();
         mainWindow.Show();
     }
@@ -163,7 +168,8 @@ public partial class App
     private void Application_HandleException(object sender, UnhandledExceptionEventArgs e)
     {
         if (e.ExceptionObject is Exception exception)
-            _logger.LogError(exception, "未处理异常：{}", GetExceptionMessage(exception));
+            if (_logger.IsEnabled(LogLevel.Critical))
+                _logger.LogCritical(exception, "未处理异常：{}", GetExceptionMessage(exception));
         MessageBox.Show($"出现未处理的异常，请截图留存，否则可能无法定位：{e.ExceptionObject}");
     }
 

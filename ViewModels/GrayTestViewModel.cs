@@ -10,11 +10,11 @@ internal partial class GrayTestViewModel(Config config, ILogger<GrayTestViewMode
     : ObservableObject
 {
     [ObservableProperty]
-    bool _isGrayTestValid;
+    public partial bool IsGrayTestValid { get; set; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CheckGrayTestCommand))]
-    string? _token;
+    public partial string? Token { get; set; }
 
     [RelayCommand(CanExecute = nameof(CanExecuteCheckGrayTest))]
     private void CheckGrayTest(string token)
